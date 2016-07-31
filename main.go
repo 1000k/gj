@@ -69,12 +69,12 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		tv.Message = "Saved"
 	}
 
-	t := template.Must(template.ParseFiles("templates/index.html"))
+	t := template.Must(template.ParseFiles("templates/index.html", "templates/_header.html"))
 	t.Execute(w, tv)
 }
 
 func ChartHandler(w http.ResponseWriter, r *http.Request) {
-	t := template.Must(template.ParseFiles("templates/chart.html"))
+	t := template.Must(template.ParseFiles("templates/chart.html", "templates/_header.html"))
 	t.Execute(w, nil)
 }
 
