@@ -5,6 +5,7 @@
   <title>Good Job</title>
 </head>
 <body>
+  <div class="flash {{if .HasError}} flash-error{{end}}">{{.Message}}</div>
   <form action="." method="POST">
     <div>
       <input type="text" name="from_name" placeholder="FROM"> ->

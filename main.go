@@ -5,13 +5,20 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
-	// "github.com/kr/pretty"
 )
+
+type TemplateValues struct {
+	HasError bool
+	Message  string
+}
 
 func checkErr(err error, messages ...string) {
 	if err != nil {
+		tv.HasError = false
+		tv.Message = strings.Join(messages, " ")
 		panic(err)
 	}
 }
@@ -32,6 +39,11 @@ func initializeDb() *sql.DB {
 	return db
 }
 
+var tv = TemplateValues{
+	HasError: true,
+	Message:  "",
+}
+
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -42,22 +54,23 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		initializeDb()
 
 		db, err := sql.Open("sqlite3", "./gj.db")
-		checkErr(err)
+		checkErr(err, "Failed to open database file.")
 
 		stmt, err := db.Prepare("INSERT INTO gjs(from_name, to_name, message) values(?,?,?)")
-		checkErr(err)
+		checkErr(err, "Prepared query is invalid.")
 
 		res, err := stmt.Exec(r.FormValue("from_name"), r.FormValue("to_name"), r.FormValue("message"))
-		checkErr(err)
+		checkErr(err, "Cannot execute query.")
 
 		id, err := res.LastInsertId()
-		checkErr(err)
+		checkErr(err, "Cannot fetch last id.")
 
 		log.Println("id: ", id)
+		tv.Message = "Saved"
 	}
 
 	t := template.Must(template.ParseFiles("templates/index.html"))
-	t.Execute(w, nil)
+	t.Execute(w, tv)
 }
 
 func main() {
