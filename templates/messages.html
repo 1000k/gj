@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Messages | Good Job</title>
+</head>
+<body>
+  {{template "header" .}}
+
+  <h1>messages</h1>
+  <ul>{{range .}}<li>{{.FromName}} &gt; {{.ToName}}: {{.Message}} - <time>{{.CreatedAt}}</time></li>{{end}}</ul>
+</body>
+</html>

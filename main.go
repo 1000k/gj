@@ -27,7 +27,7 @@ func initializeDb() *sql.DB {
 	db, err := sql.Open("sqlite3", "./gj.db")
 	checkErr(err)
 
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS gjs (
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS messages (
 		id INTEGER PRIMARY KEY,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		from_name VARCHAR(255) NOT NULL,
@@ -51,12 +51,9 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		log.Println(r.Form)
 
-		initializeDb()
+		db := initializeDb()
 
-		db, err := sql.Open("sqlite3", "./gj.db")
-		checkErr(err, "Failed to open database file.")
-
-		stmt, err := db.Prepare("INSERT INTO gjs(from_name, to_name, message) values(?,?,?)")
+		stmt, err := db.Prepare("INSERT INTO messages(from_name, to_name, message) values(?,?,?)")
 		checkErr(err, "Prepared query is invalid.")
 
 		res, err := stmt.Exec(r.FormValue("from_name"), r.FormValue("to_name"), r.FormValue("message"))
@@ -78,9 +75,39 @@ func ChartHandler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, nil)
 }
 
+type MessageItem struct {
+	Id        int
+	FromName  string
+	ToName    string
+	CreatedAt string
+	Message   string
+}
+
+func MessagesHandler(w http.ResponseWriter, r *http.Request) {
+	db := initializeDb()
+
+	rows, err := db.Query("SELECT id, from_name, to_name, created_at, message FROM messages ORDER BY created_at DESC")
+	checkErr(err, "Prepared query is invalid.")
+	defer rows.Close()
+
+	var result []MessageItem
+
+	for rows.Next() {
+		item := MessageItem{}
+		err = rows.Scan(&item.Id, &item.FromName, &item.ToName, &item.CreatedAt, &item.Message)
+		checkErr(err)
+		result = append(result, item)
+	}
+
+	t := template.Must(template.ParseFiles("templates/messages.html", "templates/_header.html"))
+	err = t.Execute(w, result)
+	checkErr(err)
+}
+
 func main() {
 	http.HandleFunc("/", IndexHandler)
 	http.HandleFunc("/chart", ChartHandler)
+	http.HandleFunc("/messages", MessagesHandler)
 	err := http.ListenAndServe(":8000", nil)
 	checkErr(err, "ListenAndServer: ")
 }
