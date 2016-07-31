@@ -5,14 +5,16 @@
   <title>Good Job</title>
 </head>
 <body>
-  <div class="flash {{if .HasError}} flash-error{{end}}">{{.Message}}</div>
+  {{ template "header" . }}
+
+  <div class="flash{{if .HasError}} flash-error{{end}}">{{.Message}}</div>
   <form action="." method="POST">
     <div>
       <input type="text" name="from_name" placeholder="FROM"> ->
       <input type="text" name="to_name" placeholder="TO">
     </div>
     <div>
-      <textarea name="message" cols="30" rows="10" placeholder="MESSAGE"></textarea>
+      <textarea name="message" cols="60" rows="3" placeholder="MESSAGE"></textarea>
     </div>
     <input type="submit" value="GJ">
   </form>
