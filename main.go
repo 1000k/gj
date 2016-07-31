@@ -73,8 +73,14 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, tv)
 }
 
+func ChartHandler(w http.ResponseWriter, r *http.Request) {
+	t := template.Must(template.ParseFiles("templates/chart.html"))
+	t.Execute(w, nil)
+}
+
 func main() {
 	http.HandleFunc("/", IndexHandler)
+	http.HandleFunc("/chart", ChartHandler)
 	err := http.ListenAndServe(":8000", nil)
 	checkErr(err, "ListenAndServer: ")
 }
