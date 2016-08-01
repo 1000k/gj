@@ -44,3 +44,8 @@ func TestFindMessages(t *testing.T) {
 		t.Errorf("Failed to find messages: '%v'", err)
 	}
 }
+
+func TestFindRanking(t *testing.T) {
+	setup()
+
+}

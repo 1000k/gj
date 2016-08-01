@@ -11,7 +11,7 @@ var _db *sql.DB
 
 func getDbHandler(host string) (db *sql.DB, err error) {
 	db, err = sql.Open("sqlite3", host)
-	return db, err
+	return
 }
 
 func createMessagesTable(db *sql.DB) (res sql.Result, err error) {
@@ -22,52 +22,52 @@ func createMessagesTable(db *sql.DB) (res sql.Result, err error) {
 		to_name VARCHAR(255) NOT NULL,
 		message TEXT
 	)`)
-	return res, err
+	return
 }
 
 // ConnectDb trys to connect specified host and returns connection.
 func ConnectDb(host string) (db *sql.DB, err error) {
 	db, err = getDbHandler(host)
 	if err != nil {
-		return db, err
+		return
 	}
 	_, err = createMessagesTable(db)
 
 	_db = db
-	return db, err
+	return
 }
 
 // ResetDb drops all tables and re-creates messages table.
 func ResetDb(host string) (res sql.Result, err error) {
 	db, err := getDbHandler(host)
 	if err != nil {
-		return res, err
+		return
 	}
 
 	res, err = db.Exec(`DROP TABLE messages`)
 	if err != nil {
-		return res, err
+		return
 	}
 
 	res, err = createMessagesTable(db)
 
-	return res, err
+	return
 }
 
 // NewMessage inserts a message record and returns last insert id.
 func NewMessage(from, to, message string) (id int64, err error) {
 	stmt, err := _db.Prepare("INSERT INTO messages(from_name, to_name, message) values(?,?,?)")
 	if err != nil {
-		return id, err
+		return
 	}
 
 	res, err := stmt.Exec(from, to, message)
 	if err != nil {
-		return id, err
+		return
 	}
 
 	id, err = res.LastInsertId()
-	return id, err
+	return
 }
 
 type MessageItem struct {
@@ -86,7 +86,7 @@ type Messages struct {
 func FindMessages() (items []MessageItem, err error) {
 	rows, err := _db.Query("SELECT id, from_name, to_name, created_at, message FROM messages ORDER BY created_at DESC")
 	if err != nil {
-		return items, err
+		return
 	}
 	defer rows.Close()
 
@@ -94,10 +94,23 @@ func FindMessages() (items []MessageItem, err error) {
 		item := MessageItem{}
 		err = rows.Scan(&item.Id, &item.FromName, &item.ToName, &item.CreatedAt, &item.Message)
 		if err != nil {
-			return items, err
+			return
 		}
 		items = append(items, item)
 	}
 
-	return items, err
+	return
+}
+
+type RankingItem struct {
+	Name  string
+	Count int
+}
+
+type Rankings struct {
+	Items []RankingItem
+}
+
+func FindRanking(ym string) {
+
 }
