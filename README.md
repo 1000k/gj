@@ -1,6 +1,8 @@
 GJ
 ====
 
+[![Build Status](https://drone.io/github.com/1000k/gj/status.png)](https://drone.io/github.com/1000k/gj/latest)
+
 Usage
 ----
 ```
