@@ -1,14 +1,16 @@
 package main
 
 import (
-	"database/sql"
 	"html/template"
 	"log"
 	"net/http"
 	"strings"
 
+	"github.com/1000k/gj/models"
 	_ "github.com/mattn/go-sqlite3"
 )
+
+const dbfile = "./gj.db"
 
 type TemplateValues struct {
 	HasError bool
@@ -23,22 +25,6 @@ func checkErr(err error, messages ...string) {
 	}
 }
 
-func initializeDb() *sql.DB {
-	db, err := sql.Open("sqlite3", "./gj.db")
-	checkErr(err)
-
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS messages (
-		id INTEGER PRIMARY KEY,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		from_name VARCHAR(255) NOT NULL,
-		to_name VARCHAR(255) NOT NULL,
-		message TEXT
-	)`)
-	checkErr(err)
-
-	return db
-}
-
 var tv = TemplateValues{
 	HasError: true,
 	Message:  "",
@@ -49,20 +35,14 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "POST" {
 		r.ParseForm()
-		log.Println(r.Form)
 
-		db := initializeDb()
+		_, err := models.ConnectDb(dbfile)
+		checkErr(err)
 
-		stmt, err := db.Prepare("INSERT INTO messages(from_name, to_name, message) values(?,?,?)")
-		checkErr(err, "Prepared query is invalid.")
+		id, err := models.NewMessage(r.FormValue("from_name"), r.FormValue("to_name"), r.FormValue("message"))
+		checkErr(err)
 
-		res, err := stmt.Exec(r.FormValue("from_name"), r.FormValue("to_name"), r.FormValue("message"))
-		checkErr(err, "Cannot execute query.")
-
-		id, err := res.LastInsertId()
-		checkErr(err, "Cannot fetch last id.")
-
-		log.Println("id: ", id)
+		log.Printf("New message saved. id: %v, values: %v\n", id, r.Form)
 		tv.Message = "Saved"
 	}
 
@@ -84,20 +64,11 @@ type MessageItem struct {
 }
 
 func MessagesHandler(w http.ResponseWriter, r *http.Request) {
-	db := initializeDb()
+	_, err := models.ConnectDb(dbfile)
+	checkErr(err)
 
-	rows, err := db.Query("SELECT id, from_name, to_name, created_at, message FROM messages ORDER BY created_at DESC")
-	checkErr(err, "Prepared query is invalid.")
-	defer rows.Close()
-
-	var result []MessageItem
-
-	for rows.Next() {
-		item := MessageItem{}
-		err = rows.Scan(&item.Id, &item.FromName, &item.ToName, &item.CreatedAt, &item.Message)
-		checkErr(err)
-		result = append(result, item)
-	}
+	result, err := models.FindMessages()
+	checkErr(err)
 
 	t := template.Must(template.ParseFiles("templates/messages.html", "templates/_header.html"))
 	err = t.Execute(w, result)
