@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"html/template"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/1000k/gj/models"
 	_ "github.com/mattn/go-sqlite3"
@@ -39,7 +41,8 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		_, err := models.ConnectDb(dbfile)
 		checkErr(err)
 
-		id, err := models.NewMessage(r.FormValue("from_name"), r.FormValue("to_name"), r.FormValue("message"))
+		params := models.NewMessageParams{From: r.FormValue("from_name"), To: r.FormValue("to_name"), Message: r.FormValue("message")}
+		id, err := models.NewMessage(params)
 		checkErr(err)
 
 		log.Printf("New message saved. id: %v, values: %v\n", id, r.Form)
@@ -51,8 +54,30 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ChartHandler(w http.ResponseWriter, r *http.Request) {
+	_, err := models.ConnectDb(dbfile)
+	checkErr(err)
+
+	thisMonth := time.Now().Format("200601")
+	ranking, err := models.FindRanking(thisMonth)
+	checkErr(err)
+
+	labels := []string{}
+	data := []int{}
+	for _, v := range ranking {
+		labels = append(labels, v.Name)
+		data = append(data, v.Count)
+	}
+
+	l, _ := json.Marshal(labels)
+	d, _ := json.Marshal(data)
+	out := map[string]interface{}{
+		"Labels": template.JS(string(l)),
+		"Data":   template.JS(string(d)),
+	}
+	// log.Println(labels, data, out)
+
 	t := template.Must(template.ParseFiles("templates/chart.html", "templates/_header.html"))
-	t.Execute(w, nil)
+	t.Execute(w, out)
 }
 
 type MessageItem struct {
@@ -67,11 +92,11 @@ func MessagesHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := models.ConnectDb(dbfile)
 	checkErr(err)
 
-	result, err := models.FindMessages()
+	messages, err := models.FindMessages()
 	checkErr(err)
 
 	t := template.Must(template.ParseFiles("templates/messages.html", "templates/_header.html"))
-	err = t.Execute(w, result)
+	err = t.Execute(w, messages)
 	checkErr(err)
 }
 

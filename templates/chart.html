@@ -9,7 +9,7 @@
 <body>
   {{ template "header" . }}
 
-  <h1>Chart (work in progress)</h1>
+  <h1>Chart</h1>
   <canvas id="myChart" width="600" height="400"></canvas>
 
   <script>
@@ -17,10 +17,12 @@ var ctx = document.getElementById("myChart");
 var myChart = new Chart(ctx, {
     type: 'bar',
     data: {
-        labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
+        // labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
+        labels: {{ .Labels }},
         datasets: [{
             label: '# of Votes',
-            data: [12, 19, 3, 5, 2, 3],
+            // data: [12, 19, 3, 5, 2, 3],
+            data: {{ .Data }},
             backgroundColor: [
                 'rgba(255, 99, 132, 0.2)',
                 'rgba(54, 162, 235, 0.2)',
