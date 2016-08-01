@@ -2,35 +2,55 @@ package models
 
 import (
 	"database/sql"
-	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 var _db *sql.DB
 
-func checkErr(err error, messages ...string) {
-	if err != nil {
-		panic(err)
-	}
+func getDbHandler(host string) (db *sql.DB, err error) {
+	db, err = sql.Open("sqlite3", host)
+	return db, err
 }
 
-// ConnectDb trys to connect specified host and returns connection.
-func ConnectDb(host string) (db *sql.DB, err error) {
-	db, err = sql.Open("sqlite3", host)
-	if err != nil {
-		return db, err
-	}
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS messages (
+func createMessagesTable(db *sql.DB) (res sql.Result, err error) {
+	res, err = db.Exec(`CREATE TABLE IF NOT EXISTS messages (
 		id INTEGER PRIMARY KEY,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		from_name VARCHAR(255) NOT NULL,
 		to_name VARCHAR(255) NOT NULL,
 		message TEXT
 	)`)
+	return res, err
+}
+
+// ConnectDb trys to connect specified host and returns connection.
+func ConnectDb(host string) (db *sql.DB, err error) {
+	db, err = getDbHandler(host)
+	if err != nil {
+		return db, err
+	}
+	_, err = createMessagesTable(db)
 
 	_db = db
 	return db, err
+}
+
+// ResetDb drops all tables and re-creates messages table.
+func ResetDb(host string) (res sql.Result, err error) {
+	db, err := getDbHandler(host)
+	if err != nil {
+		return res, err
+	}
+
+	res, err = db.Exec(`DROP TABLE messages`)
+	if err != nil {
+		return res, err
+	}
+
+	res, err = createMessagesTable(db)
+
+	return res, err
 }
 
 // NewMessage inserts a message record and returns last insert id.
@@ -63,7 +83,20 @@ type Messages struct {
 
 // FindMessages returns Messages slice.
 func FindMessages() (items []MessageItem, err error) {
-	item := MessageItem{Id: 1, FromName: "Moja", ToName: "Uhouho", Message: "HEY YO", CreatedAt: "2016-08-01"}
-	items = append(items, item)
-	return items, fmt.Errorf("mojamoja")
+	rows, err := _db.Query("SELECT id, from_name, to_name, created_at, message FROM messages ORDER BY created_at DESC")
+	if err != nil {
+		return items, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		item := MessageItem{}
+		err = rows.Scan(&item.Id, &item.FromName, &item.ToName, &item.CreatedAt, &item.Message)
+		if err != nil {
+			return items, err
+		}
+		items = append(items, item)
+	}
+
+	return items, err
 }
