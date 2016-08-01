@@ -2,6 +2,8 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
+	"regexp"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -54,14 +56,22 @@ func ResetDb(host string) (res sql.Result, err error) {
 	return
 }
 
+type NewMessageParams struct {
+	From, To, Message, CreatedAt string
+}
+
 // NewMessage inserts a message record and returns last insert id.
-func NewMessage(from, to, message string) (id int64, err error) {
-	stmt, err := _db.Prepare("INSERT INTO messages(from_name, to_name, message) values(?,?,?)")
+func NewMessage(p NewMessageParams) (id int64, err error) {
+	stmt, err := _db.Prepare("INSERT INTO messages(from_name, to_name, message, created_at) values(?,?,?,?)")
 	if err != nil {
 		return
 	}
 
-	res, err := stmt.Exec(from, to, message)
+	if p.CreatedAt == "" {
+		p.CreatedAt = time.Now().Format("2016-01-02 03:04:05")
+	}
+
+	res, err := stmt.Exec(p.From, p.To, p.Message, p.CreatedAt)
 	if err != nil {
 		return
 	}
@@ -76,10 +86,6 @@ type MessageItem struct {
 	ToName    string
 	CreatedAt time.Time
 	Message   string
-}
-
-type Messages struct {
-	Items []MessageItem
 }
 
 // FindMessages returns Messages slice.
@@ -107,10 +113,41 @@ type RankingItem struct {
 	Count int
 }
 
-type Rankings struct {
-	Items []RankingItem
+func getToDate(from string) (to string) {
+	t, _ := time.Parse("2006-01-02", from)
+	to = t.AddDate(0, 1, 0).Format("2006-01-02")
+	return
 }
 
-func FindRanking(ym string) {
+func FindRanking(ym string) (items []RankingItem, err error) {
+	rep := regexp.MustCompile(`(\d{4})(\d{2})`)
+	fromDate := rep.ReplaceAllString(ym, "$1-$2-01")
+	if fromDate == "" {
+		err = fmt.Errorf("Paramete 'ym' should be as 'YYYYMM'")
+		return
+	}
+	toDate := getToDate(fromDate)
 
+	stmt, err := _db.Prepare("SELECT to_name, COUNT(*) AS cnt FROM messages WHERE created_at >= ? AND created_at < ? GROUP BY to_name ORDER BY cnt DESC LIMIT 10")
+	if err != nil {
+		return
+	}
+
+	rows, err := stmt.Query(fromDate, toDate)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		item := RankingItem{}
+		err = rows.Scan(&item.Name, &item.Count)
+		if err != nil {
+			return
+		}
+		items = append(items, item)
+	}
+
+	return
 }
