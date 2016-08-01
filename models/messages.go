@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -70,10 +71,10 @@ func NewMessage(from, to, message string) (id int64, err error) {
 }
 
 type MessageItem struct {
-	Id        int
+	Id        int64
 	FromName  string
 	ToName    string
-	CreatedAt string
+	CreatedAt time.Time
 	Message   string
 }
 

@@ -39,10 +39,10 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		_, err := models.ConnectDb(dbfile)
 		checkErr(err)
 
-		res, err := models.NewMessage(r.FormValue("from_name"), r.FormValue("to_name"), r.FormValue("message"))
+		id, err := models.NewMessage(r.FormValue("from_name"), r.FormValue("to_name"), r.FormValue("message"))
 		checkErr(err)
 
-		log.Println("New message saved: ", res)
+		log.Printf("New message saved. id: %v, values: %v\n", id, r.Form)
 		tv.Message = "Saved"
 	}
 
