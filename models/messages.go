@@ -119,11 +119,13 @@ func getToDate(from string) (to string) {
 	return
 }
 
+// FindRanking returns ranking slice.
+// Parameter 'ym' should be as `201608`
 func FindRanking(ym string) (items []RankingItem, err error) {
 	rep := regexp.MustCompile(`(\d{4})(\d{2})`)
 	fromDate := rep.ReplaceAllString(ym, "$1-$2-01")
 	if fromDate == "" {
-		err = fmt.Errorf("Paramete 'ym' should be as 'YYYYMM'")
+		err = fmt.Errorf("Parameter 'ym' should be as 'YYYYMM'")
 		return
 	}
 	toDate := getToDate(fromDate)
